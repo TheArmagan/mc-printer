@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "chillout": "^5.0.0",
+    "fast-average-color-node": "^1.0.3",
+    "jimp": "^0.16.1",
+    "mcfsd": "^1.2.1",
+    "minecraft-assets": "^1.8.2",
+    "mineflayer": "^3.11.0",
+    "nearest-color": "^0.4.4",
+    "stuffs": "^0.1.6"
+  }
+}
