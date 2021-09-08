@@ -5,7 +5,7 @@ const Jimp = require("jimp");
 const stuffs = require("stuffs");
 
 mcAssets.blocksArray.forEach(async ({ name: blockName }) => {
-  if (["bed", "slab", "hook", "head", "gate", "lava", "cauldron", "water", "cob", "web", "string", "door", "lever", "skull", "infested", "sign", "farmland", "book", "jigsaw", "bed", "shulker", "stair", "redstone", "piston", "azalea", "egg", "repeater", "observer", "comparator", "barrier", "end", "plate", "carpet", "coral", "banner", "chest", "detect"].some(i => blockName.includes(i))) return;
+  if (["bed", "slab", "hook", "head", "chorus", "shroo", "gate", "lava", "cauldron", "water", "cob", "web", "string", "door", "lever", "skull", "infested", "sign", "farmland", "book", "jigsaw", "bed", "shulker", "stair", "redstone", "piston", "azalea", "egg", "repeater", "observer", "comparator", "barrier", "end", "plate", "carpet", "coral", "banner", "chest", "detect"].some(i => blockName.includes(i))) return;
   if ((blockName.includes("copper") && !blockName.includes("waxed")) && !blockName.includes("raw")) return;
   if (blockName.includes("snow") && !blockName.includes("block")) return;
   let textureBase64 = mcAssets.textureContent[blockName]?.texture;
