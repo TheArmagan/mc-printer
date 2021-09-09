@@ -1,6 +1,6 @@
 const mineflayer = require('mineflayer');
 const colorMap = require("./colorMap.json");
-let getNearestBlock = require('nearest-color').from(colorMap);
+const getNearestBlockByColor = require('nearest-color').from(colorMap);
 const Jimp = require("jimp");
 const mcfsd = require("mcfsd");
 const stuffs = require("stuffs");
@@ -8,11 +8,11 @@ const chillout = require("chillout");
 
 // CONFIG PART
 const offsetX = 0;
-const offsetY = 4;
+const offsetY = 6;
 const offsetZ = 0;
-const howManyBots = 19;
-const perBotOffsetMs = 5;
-const placementDelayMs = 5;
+const howManyBots = 10;
+const perBotOffsetMs = 10;
+const placementDelayMs = 10;
 const ditheringOffset = 5; // 0 = off, 5 = normal, 10 = little, 2 = much
 const scaffoldBlock = "stone";
 // CONFIG END
@@ -21,14 +21,18 @@ const scaffoldBlock = "stone";
 let bots = [];
 
 for (let i = 0; i < howManyBots; i++) {
-  let bot = mineflayer.createBot({
-    username: `ArmaganBot${i + 1}`,
-    host: "127.0.0.1"
-  });
-  bot.spawned = false;
-  bot.once("spawn", () => { bot.spawned = true });
-  bot.once("kicked", () => { bot.end(); });
-  bots.push(bot);
+  function doTheJob() {
+    let bot = mineflayer.createBot({
+      username: `ArmaganBot${i + 1}`,
+      host: "127.0.0.1",
+      keepAlive: true
+    });
+    bot.spawned = false;
+    bot.once("spawn", () => { bot.spawned = true });
+    bot.once("end", () => { bot.spawned = false; doTheJob(); });
+    bots[i] = bot;
+  }
+  doTheJob();
 }
 
 (async () => {
@@ -46,7 +50,7 @@ for (let i = 0; i < howManyBots; i++) {
       let rgba = stuffs.intToRgba(img.getPixelColor(x, y));
       if (rgba.a == 255) {
         let hexColor = stuffs.rgbToHex(rgba.r, rgba.g, rgba.b);
-        let blockName = getNearestBlock(hexColor).name;
+        let blockName = getNearestBlockByColor(hexColor).name;
         allData.push({ x, y, blockName });
       }
       if (x == img.bitmap.width - 1 && y == img.bitmap.height - 1) {
@@ -54,6 +58,8 @@ for (let i = 0; i < howManyBots; i++) {
       }
     })
   });
+
+  allData = allData.filter(i => i?.blockName);
 
   // Optimize the data.
   /** @type {({type:"setblock",x:number,y:number,blockName:string}|{type:"fill",x1:number,y1:number,x2:number,y2:number,blockName:string})[]}*/
@@ -106,30 +112,38 @@ for (let i = 0; i < howManyBots; i++) {
 
   // Drawing..
   dataChunks.forEach(async (chunk, chunkIndex) => {
+    {
+      let center = chunk[Math.floor(chunk.length / 2)];
+      bots[chunkIndex].chat(`/tp ${offsetX + (center.x ?? center.x1)} ${offsetY + 1} ${offsetZ + (center.y ?? center.y1)}`);
+    }
     await stuffs.sleep(perBotOffsetMs * chunkIndex);
     await chillout.forEach(chunk,
       /** @param {({type:"setblock",x:number,y:number,blockName:string}|{type:"fill",x1:number,y1:number,x2:number,y2:number,blockName:string})} data */
       async (data) => {
-      switch (data.type) {
-        case "setblock": {
-          let { blockName, x, y } = data;
-          if (isFellableBlock(blockName)) {
-            bots[chunkIndex].chat(`/setblock ${offsetX + x} ${offsetY - 1} ${offsetZ + y} ${scaffoldBlock}`);
-            await stuffs.sleep(placementDelayMs);
+        await chillout.waitUntil(() => {
+          if (bots[chunkIndex]?.spawned) return chillout.StopIteration;
+        });
+        let bot = bots[chunkIndex];
+        switch (data.type) {
+          case "setblock": {
+            let { blockName, x, y } = data;
+            if (isFellableBlock(blockName)) {
+              bot.chat(`/setblock ${offsetX + x} ${offsetY - 1} ${offsetZ + y} ${scaffoldBlock}`);
+              await stuffs.sleep(placementDelayMs);
+            }
+            bot.chat(`/setblock ${offsetX + x} ${offsetY} ${offsetZ + y} ${blockName}`);
+            break;
+          };
+          case "fill": {
+            let { blockName, x1, y1, x2, y2 } = data;
+            if (isFellableBlock(blockName)) {
+              bot.chat(`/fill ${offsetX + x1} ${offsetY - 1} ${offsetZ + y1} ${offsetX + x2} ${offsetY - 1} ${offsetZ + y2} ${scaffoldBlock}`);
+              await stuffs.sleep(placementDelayMs);
+            }
+            bot.chat(`/fill ${offsetX + x1} ${offsetY} ${offsetZ + y1} ${offsetX + x2} ${offsetY} ${offsetZ + y2} ${blockName}`);
           }
-          bots[chunkIndex].chat(`/setblock ${offsetX + x} ${offsetY} ${offsetZ + y} ${blockName}`);
-          break;
-        };
-        case "fill": {
-          let { blockName, x1, y1, x2, y2 } = data;
-          if (isFellableBlock(blockName)) {
-            bots[chunkIndex].chat(`/fill ${offsetX + x1} ${offsetY - 1} ${offsetZ + y1} ${offsetX + x2} ${offsetY - 1} ${offsetZ + y2} ${scaffoldBlock}`);
-            await stuffs.sleep(placementDelayMs);
-          }
-          bots[chunkIndex].chat(`/fill ${offsetX + x1} ${offsetY} ${offsetZ + y1} ${offsetX + x2} ${offsetY} ${offsetZ + y2} ${blockName}`);
         }
-      }
-      await stuffs.sleep(placementDelayMs);
+        await stuffs.sleep(placementDelayMs);
     });
   })
 })();

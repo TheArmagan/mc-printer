@@ -6,7 +6,10 @@
     "mcfsd": "^1.2.1",
     "minecraft-assets": "^1.8.2",
     "mineflayer": "^3.11.0",
+    "mineflayer-pathfinder": "^1.7.0",
     "nearest-color": "^0.4.4",
-    "stuffs": "^0.1.6"
+    "prismarine-item": "^1.10.1",
+    "stuffs": "^0.1.6",
+    "vec3": "^0.1.7"
   }
 }
